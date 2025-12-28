@@ -1,7 +1,12 @@
-# ======================================================
-# TEXTVORTEX – ZERO-CRASH NLP ENGINE (PRODUCTION SAFE)
-# Python 3.13 | Streamlit | Regex NLP Core
-# ======================================================
+
+import streamlit as st
+
+st.set_page_config(page_title="TextVortex", layout="wide")
+
+st.title("✍ TextVortex")
+st.caption("Advanced NLP Engine")
+
+# 🔽 PASTE YOUR FULL TextVortex CODE BELOW THIS LINE
 
 import streamlit as st
 import re
