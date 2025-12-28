@@ -10,15 +10,14 @@ st.title("🧠 Ather AI Hub")
 st.subheader("Unified Artificial Intelligence Platform")
 
 st.markdown("""
-### Integrated Engines
-- 📊 **InfernoData** – Dataset Engineering  
-- ✍ **TextVortex** – NLP Intelligence  
-- 📈 **AlphaFlux** – Financial Analytics  
-- 👁 **VisionBlaze** – Computer Vision  
-- 🤖 **ModelCraft X** – Machine Learning Lab  
+### Integrated AI Engines
+- 📊 **InfernoData** – Dataset Engineering
+- ✍ **TextVortex** – NLP Intelligence
+- 📈 **AlphaFlux** – Financial Analytics
+- 👁 **VisionBlaze** – Computer Vision
+- 🤖 **ModelCraft X** – Machine Learning Lab
 
-👉 Use the **left sidebar** to navigate between modules.
+➡️ Use the **sidebar** to navigate between modules.
 """)
 
-st.info("This platform uses a modular multi-page architecture designed for research, scalability, and real-world AI experimentation.")
-
+st.success("Multi-page architecture loaded successfully.")
