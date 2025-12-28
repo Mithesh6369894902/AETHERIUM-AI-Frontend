@@ -7,17 +7,15 @@ st.set_page_config(
 )
 
 st.title("🧠 Ather AI Hub")
-st.subheader("Unified Artificial Intelligence Platform")
+st.markdown("### One Hub. Multiple AI Engines.")
+
+st.success("If you can see this, Streamlit is running correctly.")
 
 st.markdown("""
-### Integrated AI Engines
-- 📊 InfernoData — Dataset Engineering
-- ✍️ TextVortex — NLP Intelligence
-- 📈 AlphaFlux — Financial Analytics
-- 👁 VisionBlaze — Computer Vision
-- 🤖 ModelCraft X — Machine Learning Lab
-
-⬅️ Use the sidebar to switch modules
+### Available Modules (use the sidebar 👈):
+- 📊 InfernoData
+- ✍️ TextVortex
+- 📈 AlphaFlux
+- 👁 VisionBlaze
+- 🤖 ModelCraft X
 """)
-
-st.success("Multi-page architecture loaded successfully.")
