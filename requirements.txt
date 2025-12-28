@@ -10,4 +10,4 @@ textstat
 wordcloud
 yfinance
 scipy
-
+mlxtend
