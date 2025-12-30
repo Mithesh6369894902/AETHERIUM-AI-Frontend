@@ -1,12 +1,12 @@
 import streamlit as st
 
 st.set_page_config(
-    page_title="ATHERIUM",
+    page_title="ÆTHERIUM",
     page_icon="🌐",
     layout="wide"
 )
 
-st.title("🌐 ATHERIUM")
+st.title("🌐 ÆTHERIUM")
 st.markdown("### All-in-one intelligence for modern applications.")
 
 st.success("If you can see this, Streamlit is running correctly.")
