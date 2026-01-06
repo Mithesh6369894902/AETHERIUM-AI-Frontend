@@ -57,7 +57,6 @@ page = st.sidebar.radio(
         "🏠 Home",
         "🔠 Tokenization",
         "🛑 Stopwords Removal",
-        "🏷️ POS Tagging",
         "🌱 Stemming",
         "🌿 Lemmatization",
         "🔢 N-Grams",
@@ -112,14 +111,6 @@ elif page == "🔠 Tokenization" and validate():
 elif page == "🛑 Stopwords Removal" and validate():
     tokens = safe_word_tokenize(text)
     st.write([t for t in tokens if t not in STOPWORDS])
-
-# ======================================================
-# POS TAGGING
-# ======================================================
-elif page == "🏷️ POS Tagging" and validate():
-    tokens = safe_word_tokenize(text)
-    tags = pos_tag(tokens)
-    st.dataframe(pd.DataFrame(tags, columns=["Word", "POS"]))
 
 # ======================================================
 # STEMMING
