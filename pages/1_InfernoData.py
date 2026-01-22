@@ -1,181 +1,164 @@
 import streamlit as st
 import requests
 import pandas as pd
-import base64
-import matplotlib.pyplot as plt
 
-# ---------------- CONFIG ---------------- #
-st.set_page_config(
-    page_title="InfernoData",
-    page_icon="🔥📊",
-    layout="wide"
-)
+st.set_page_config(page_title="InfernoData", page_icon="🔥", layout="wide")
+st.title("🔥 InfernoData – Dataset Engineering Engine")
 
-BACKEND_URL = "http://localhost:8000"
+# 🔐 Load secrets
+BACKEND_URL = st.secrets["BACKEND_URL"]
+API_KEY = st.secrets["API_KEY"]
 
-st.title("🔥📊 InfernoData")
-st.caption("Advanced Dataset Engineering & ML Validation Platform")
+headers = {"X-API-Key": API_KEY}
 
 # ---------------- SIDEBAR ---------------- #
-page = st.sidebar.radio(
-    "Navigate",
+mode = st.sidebar.radio(
+    "Select Operation",
     [
-        "🏠 Home",
-        "🧪 Dataset Generator",
-        "✂️ Dataset Trimmer",
-        "🧠 Classification Execution",
-        "📉 Regression Execution",
-        "🧩 Clustering Execution",
-        "🔗 Association Rule Mining"
+        "Dataset Generator",
+        "Dataset Trimmer",
+        "Classification",
+        "Regression",
+        "Clustering",
+        "Association Rules"
     ]
 )
 
-# ---------------- UTIL ---------------- #
-def download_csv(df, name):
-    csv = df.to_csv(index=False)
-    b64 = base64.b64encode(csv.encode()).decode()
-    st.markdown(
-        f'<a href="data:file/csv;base64,{b64}" download="{name}">⬇️ Download CSV</a>',
-        unsafe_allow_html=True
-    )
-
-# ---------------- HOME ---------------- #
-if page == "🏠 Home":
-    st.markdown("""
-    ## 🔥 InfernoData
-    InfernoData is the dataset engineering layer of ÆTHERIUM.
-    All dataset processing and ML validation are executed via
-    a centralized backend for scalability and reuse.
-    """)
-
 # ---------------- DATASET GENERATOR ---------------- #
-elif page == "🧪 Dataset Generator":
-    st.header("🧪 Synthetic Dataset Generator")
-
+if mode == "Dataset Generator":
     rows = st.slider("Rows", 10, 500, 100)
     cols = st.slider("Columns", 2, 10, 4)
 
-    if st.button("🔥 Generate Dataset"):
-        response = requests.post(
-            f"{BACKEND_URL}/inferno/generate",
-            json={"rows": rows, "cols": cols}
-        )
+    if st.button("Generate Dataset"):
+        try:
+            response = requests.post(
+                f"{BACKEND_URL}/inferno/generate",
+                json={"rows": rows, "cols": cols},
+                headers=headers,
+                timeout=60
+            )
 
-        df = pd.DataFrame(response.json()["data"])
-        st.dataframe(df.head())
-        download_csv(df, "synthetic_dataset.csv")
+            if response.status_code == 200:
+                df = pd.DataFrame(response.json())
+                st.success("Dataset generated")
+                st.dataframe(df)
+            else:
+                st.error(f"Backend error: {response.status_code}")
+                st.text(response.text)
+
+        except requests.exceptions.RequestException as e:
+            st.error("Could not connect to InfernoData backend")
+            st.text(str(e))
 
 # ---------------- DATASET TRIMMER ---------------- #
-elif page == "✂️ Dataset Trimmer":
-    st.header("✂️ Dataset Trimmer")
-
+elif mode == "Dataset Trimmer":
     file = st.file_uploader("Upload CSV", type=["csv"])
-    if file:
-        df = pd.read_csv(file)
-        st.write("Original Shape:", df.shape)
-
-        cols = st.multiselect("Select Columns", df.columns.tolist())
-        rows = st.slider("Rows", 1, len(df), min(100, len(df)))
-
-        if st.button("Trim Dataset"):
+    if file and st.button("Trim Dataset"):
+        try:
+            files = {"file": file}
             response = requests.post(
                 f"{BACKEND_URL}/inferno/trim",
-                json={
-                    "data": df.to_dict(orient="records"),
-                    "columns": cols,
-                    "rows": rows
-                }
+                files=files,
+                headers=headers,
+                timeout=60
             )
 
-            trimmed = pd.DataFrame(response.json()["data"])
-            st.dataframe(trimmed.head())
-            download_csv(trimmed, "trimmed_dataset.csv")
+            if response.status_code == 200:
+                df = pd.DataFrame(response.json())
+                st.success("Dataset trimmed")
+                st.dataframe(df)
+            else:
+                st.error(f"Backend error: {response.status_code}")
+                st.text(response.text)
+
+        except requests.exceptions.RequestException as e:
+            st.error("Connection failed")
+            st.text(str(e))
 
 # ---------------- CLASSIFICATION ---------------- #
-elif page == "🧠 Classification Execution":
-    st.header("🧠 Classification Validation")
+elif mode == "Classification":
+    file = st.file_uploader("Upload CSV", type=["csv"])
+    target = st.text_input("Target Column")
 
-    file = st.file_uploader("Upload Dataset", type=["csv"])
-    if file:
-        df = pd.read_csv(file)
-        target = st.selectbox("Target Column", df.columns)
-
-        model_type = st.radio("Model", ["LogisticRegression", "DecisionTree"])
-
-        if st.button("Train & Validate"):
+    if file and target and st.button("Run Classification"):
+        try:
+            files = {"file": file}
             response = requests.post(
-                f"{BACKEND_URL}/inferno/classification",
-                json={
-                    "data": df.to_dict(orient="records"),
-                    "target": target,
-                    "model": model_type
-                }
+                f"{BACKEND_URL}/inferno/classify",
+                files=files,
+                data={"target": target},
+                headers=headers,
+                timeout=60
             )
 
-            st.metric("Accuracy", response.json()["accuracy"])
-            st.text(response.json()["report"])
+            st.json(response.json())
+
+        except requests.exceptions.RequestException as e:
+            st.error("Connection failed")
+            st.text(str(e))
 
 # ---------------- REGRESSION ---------------- #
-elif page == "📉 Regression Execution":
-    st.header("📉 Regression Validation")
+elif mode == "Regression":
+    file = st.file_uploader("Upload CSV", type=["csv"])
+    target = st.text_input("Target Column")
 
-    file = st.file_uploader("Upload Dataset", type=["csv"])
-    if file:
-        df = pd.read_csv(file)
-        target = st.selectbox("Target Column", df.columns)
-        model_type = st.radio("Model", ["Linear", "Ridge"])
-
-        if st.button("Train & Validate"):
+    if file and target and st.button("Run Regression"):
+        try:
+            files = {"file": file}
             response = requests.post(
-                f"{BACKEND_URL}/inferno/regression",
-                json={
-                    "data": df.to_dict(orient="records"),
-                    "target": target,
-                    "model": model_type
-                }
+                f"{BACKEND_URL}/inferno/regress",
+                files=files,
+                data={"target": target},
+                headers=headers,
+                timeout=60
             )
 
-            st.metric("MAE", response.json()["mae"])
-            st.metric("MSE", response.json()["mse"])
-            st.metric("R2", response.json()["r2"])
+            st.json(response.json())
+
+        except requests.exceptions.RequestException as e:
+            st.error("Connection failed")
+            st.text(str(e))
 
 # ---------------- CLUSTERING ---------------- #
-elif page == "🧩 Clustering Execution":
-    st.header("🧩 Clustering Validation")
+elif mode == "Clustering":
+    file = st.file_uploader("Upload CSV", type=["csv"])
+    k = st.slider("Clusters (k)", 2, 10, 3)
 
-    file = st.file_uploader("Upload Dataset", type=["csv"])
-    if file:
-        df = pd.read_csv(file)
-        k = st.slider("Clusters", 2, 10, 3)
-
-        if st.button("Run Clustering"):
+    if file and st.button("Run Clustering"):
+        try:
+            files = {"file": file}
             response = requests.post(
-                f"{BACKEND_URL}/inferno/clustering",
-                json={
-                    "data": df.to_dict(orient="records"),
-                    "k": k
-                }
+                f"{BACKEND_URL}/inferno/cluster",
+                files=files,
+                data={"k": k},
+                headers=headers,
+                timeout=60
             )
 
-            clustered = pd.DataFrame(response.json()["data"])
-            st.dataframe(clustered.head())
+            st.json(response.json())
 
-# ---------------- ASSOCIATION ---------------- #
-elif page == "🔗 Association Rule Mining":
-    st.header("🔗 Association Rule Mining")
+        except requests.exceptions.RequestException as e:
+            st.error("Connection failed")
+            st.text(str(e))
 
+# ---------------- ASSOCIATION RULES ---------------- #
+elif mode == "Association Rules":
     file = st.file_uploader("Upload Transaction CSV", type=["csv"])
-    if file:
-        df = pd.read_csv(file, header=None)
 
-        if st.button("Generate Rules"):
+    if file and st.button("Run Association Mining"):
+        try:
+            files = {"file": file}
             response = requests.post(
-                f"{BACKEND_URL}/inferno/association",
-                json={
-                    "transactions": df.iloc[:, 0].tolist()
-                }
+                f"{BACKEND_URL}/inferno/associate",
+                files=files,
+                headers=headers,
+                timeout=60
             )
 
-            rules = pd.DataFrame(response.json()["rules"])
-            st.dataframe(rules)
+            st.json(response.json())
+
+        except requests.exceptions.RequestException as e:
+            st.error("Connection failed")
+            st.text(str(e))
+
 
