@@ -1,0 +1,24 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.aetherium.app">
+
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <application
+        android:label="AETHERIUM"
+        android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
+
+        <activity android:name=".ui.InfernoActivity"/>
+        <activity android:name=".ui.TextVortexActivity"/>
+        <activity android:name=".ui.VisionBlazeActivity"/>
+        <activity android:name=".ui.AlphaFluxActivity"/>
+        <activity android:name=".ui.ModelCraftActivity"/>
+
+        <activity android:name=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+
+    </application>
+</manifest>
