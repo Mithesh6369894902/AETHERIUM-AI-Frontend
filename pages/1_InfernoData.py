@@ -1,20 +1,8 @@
 import streamlit as st
+import requests
 import pandas as pd
-import numpy as np
 import base64
 import matplotlib.pyplot as plt
-
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression, LinearRegression, Ridge
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.cluster import KMeans
-from sklearn.metrics import (
-    accuracy_score, classification_report,
-    mean_absolute_error, mean_squared_error, r2_score
-)
-
-from mlxtend.frequent_patterns import apriori, association_rules
-from mlxtend.preprocessing import TransactionEncoder
 
 # ---------------- CONFIG ---------------- #
 st.set_page_config(
@@ -22,6 +10,8 @@ st.set_page_config(
     page_icon="🔥📊",
     layout="wide"
 )
+
+BACKEND_URL = "http://localhost:8000"
 
 st.title("🔥📊 InfernoData")
 st.caption("Advanced Dataset Engineering & ML Validation Platform")
@@ -41,7 +31,7 @@ page = st.sidebar.radio(
 )
 
 # ---------------- UTIL ---------------- #
-def download_csv(df, name="dataset.csv"):
+def download_csv(df, name):
     csv = df.to_csv(index=False)
     b64 = base64.b64encode(csv.encode()).decode()
     st.markdown(
@@ -53,17 +43,9 @@ def download_csv(df, name="dataset.csv"):
 if page == "🏠 Home":
     st.markdown("""
     ## 🔥 InfernoData
-    
-    **InfernoData** is a dataset-centric ML platform that bridges the gap between  
-    **data preparation** and **model validation**.
-
-    ### What makes it different?
-    - Focus on **dataset engineering**
-    - Lightweight ML execution for **validation**
-    - Supports **Classification, Regression, Clustering & Association**
-    - Designed for **research & academic projects**
-
-    > *Data comes first. Models come second.*
+    InfernoData is the dataset engineering layer of ÆTHERIUM.
+    All dataset processing and ML validation are executed via
+    a centralized backend for scalability and reuse.
     """)
 
 # ---------------- DATASET GENERATOR ---------------- #
@@ -74,12 +56,16 @@ elif page == "🧪 Dataset Generator":
     cols = st.slider("Columns", 2, 10, 4)
 
     if st.button("🔥 Generate Dataset"):
-        data = np.random.randn(rows, cols)
-        df = pd.DataFrame(data, columns=[f"Feature_{i+1}" for i in range(cols)])
+        response = requests.post(
+            f"{BACKEND_URL}/inferno/generate",
+            json={"rows": rows, "cols": cols}
+        )
+
+        df = pd.DataFrame(response.json()["data"])
         st.dataframe(df.head())
         download_csv(df, "synthetic_dataset.csv")
 
-# ---------------- TRIMMER ---------------- #
+# ---------------- DATASET TRIMMER ---------------- #
 elif page == "✂️ Dataset Trimmer":
     st.header("✂️ Dataset Trimmer")
 
@@ -88,11 +74,20 @@ elif page == "✂️ Dataset Trimmer":
         df = pd.read_csv(file)
         st.write("Original Shape:", df.shape)
 
-        cols = st.multiselect("Select Columns", df.columns)
+        cols = st.multiselect("Select Columns", df.columns.tolist())
         rows = st.slider("Rows", 1, len(df), min(100, len(df)))
 
         if st.button("Trim Dataset"):
-            trimmed = df[cols].sample(rows, replace=True)
+            response = requests.post(
+                f"{BACKEND_URL}/inferno/trim",
+                json={
+                    "data": df.to_dict(orient="records"),
+                    "columns": cols,
+                    "rows": rows
+                }
+            )
+
+            trimmed = pd.DataFrame(response.json()["data"])
             st.dataframe(trimmed.head())
             download_csv(trimmed, "trimmed_dataset.csv")
 
@@ -100,132 +95,87 @@ elif page == "✂️ Dataset Trimmer":
 elif page == "🧠 Classification Execution":
     st.header("🧠 Classification Validation")
 
-    file = st.file_uploader("Upload Classification Dataset", type=["csv"])
+    file = st.file_uploader("Upload Dataset", type=["csv"])
     if file:
         df = pd.read_csv(file)
         target = st.selectbox("Target Column", df.columns)
 
-        X = df.drop(columns=[target])
-        y = df[target]
-
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-
-        model_type = st.radio("Model", ["Logistic Regression", "Decision Tree"])
+        model_type = st.radio("Model", ["LogisticRegression", "DecisionTree"])
 
         if st.button("Train & Validate"):
-            model = LogisticRegression(max_iter=1000) if model_type == "Logistic Regression" else DecisionTreeClassifier()
-            model.fit(X_train, y_train)
-            preds = model.predict(X_test)
+            response = requests.post(
+                f"{BACKEND_URL}/inferno/classification",
+                json={
+                    "data": df.to_dict(orient="records"),
+                    "target": target,
+                    "model": model_type
+                }
+            )
 
-            st.metric("Accuracy", f"{accuracy_score(y_test, preds):.2f}")
-            st.text("Classification Report")
-            st.text(classification_report(y_test, preds))
+            st.metric("Accuracy", response.json()["accuracy"])
+            st.text(response.json()["report"])
 
 # ---------------- REGRESSION ---------------- #
 elif page == "📉 Regression Execution":
     st.header("📉 Regression Validation")
 
-    file = st.file_uploader("Upload Regression Dataset", type=["csv"])
+    file = st.file_uploader("Upload Dataset", type=["csv"])
     if file:
         df = pd.read_csv(file)
         target = st.selectbox("Target Column", df.columns)
-
-        X = df.drop(columns=[target])
-        y = df[target]
-
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-
-        model_type = st.radio("Model", ["Linear Regression", "Ridge Regression"])
+        model_type = st.radio("Model", ["Linear", "Ridge"])
 
         if st.button("Train & Validate"):
-            model = LinearRegression() if model_type == "Linear Regression" else Ridge()
-            model.fit(X_train, y_train)
-            preds = model.predict(X_test)
+            response = requests.post(
+                f"{BACKEND_URL}/inferno/regression",
+                json={
+                    "data": df.to_dict(orient="records"),
+                    "target": target,
+                    "model": model_type
+                }
+            )
 
-            st.metric("MAE", f"{mean_absolute_error(y_test, preds):.2f}")
-            st.metric("MSE", f"{mean_squared_error(y_test, preds):.2f}")
-            st.metric("R²", f"{r2_score(y_test, preds):.2f}")
+            st.metric("MAE", response.json()["mae"])
+            st.metric("MSE", response.json()["mse"])
+            st.metric("R2", response.json()["r2"])
 
 # ---------------- CLUSTERING ---------------- #
 elif page == "🧩 Clustering Execution":
     st.header("🧩 Clustering Validation")
 
-    file = st.file_uploader("Upload Numeric Dataset", type=["csv"])
+    file = st.file_uploader("Upload Dataset", type=["csv"])
     if file:
         df = pd.read_csv(file)
         k = st.slider("Clusters", 2, 10, 3)
 
-        if st.button("Run KMeans"):
-            model = KMeans(n_clusters=k, random_state=42)
-            df["Cluster"] = model.fit_predict(df)
+        if st.button("Run Clustering"):
+            response = requests.post(
+                f"{BACKEND_URL}/inferno/clustering",
+                json={
+                    "data": df.to_dict(orient="records"),
+                    "k": k
+                }
+            )
 
-            st.dataframe(df.head())
-
-            fig, ax = plt.subplots()
-            ax.scatter(df.iloc[:, 0], df.iloc[:, 1], c=df["Cluster"])
-            ax.set_title("Cluster Visualization")
-            st.pyplot(fig)
+            clustered = pd.DataFrame(response.json()["data"])
+            st.dataframe(clustered.head())
 
 # ---------------- ASSOCIATION ---------------- #
 elif page == "🔗 Association Rule Mining":
     st.header("🔗 Association Rule Mining")
 
-    st.info(
-        "📌 This module accepts **transactional datasets** "
-        "(e.g., milk,bread,butter per row) and automatically "
-        "converts them into binary format."
-    )
+    file = st.file_uploader("Upload Transaction CSV", type=["csv"])
+    if file:
+        df = pd.read_csv(file, header=None)
 
-    file = st.file_uploader("Upload Transaction Dataset (CSV)", type=["csv"])
-
-    if file is not None:
-        raw_df = pd.read_csv(file, header=None)
-
-        st.subheader("📄 Raw Transactions")
-        st.dataframe(raw_df.head())
-
-        # ---------------- TRANSACTION → BINARY ---------------- #
-        transactions = raw_df.iloc[:, 0].astype(str).apply(
-            lambda x: [item.strip() for item in x.split(",")]
-        )
-
-        all_items = sorted({item for sublist in transactions for item in sublist})
-
-        binary_df = pd.DataFrame(0, index=range(len(transactions)), columns=all_items)
-
-        for i, items in enumerate(transactions):
-            binary_df.loc[i, items] = 1
-
-        st.subheader("🔁 Converted Binary Dataset")
-        st.dataframe(binary_df.head())
-
-        # ---------------- PARAMETERS ---------------- #
-        support = st.slider("Min Support", 0.01, 0.5, 0.05)
-        confidence = st.slider("Min Confidence", 0.1, 1.0, 0.5)
-
-        # ---------------- APRIORI ---------------- #
-        if st.button("🔥 Generate Association Rules"):
-            with st.spinner("Mining frequent itemsets..."):
-                freq = apriori(binary_df, min_support=support, use_colnames=True)
-
-            if freq.empty:
-                st.warning("⚠️ No frequent itemsets found. Lower support.")
-                st.stop()
-
-            rules = association_rules(
-                freq,
-                metric="confidence",
-                min_threshold=confidence
+        if st.button("Generate Rules"):
+            response = requests.post(
+                f"{BACKEND_URL}/inferno/association",
+                json={
+                    "transactions": df.iloc[:, 0].tolist()
+                }
             )
 
-            if rules.empty:
-                st.warning("⚠️ No rules generated. Lower confidence.")
-                st.stop()
-
-            st.success(f"✅ Generated {len(rules)} rules")
-
-            st.dataframe(
-                rules[["antecedents", "consequents", "support", "confidence", "lift"]]
-                .sort_values("lift", ascending=False)
-            )
+            rules = pd.DataFrame(response.json()["rules"])
+            st.dataframe(rules)
 
