@@ -1,55 +1,20 @@
-# ======================================================
-# TEXTVORTEX – ZERO-CRASH NLP ENGINE (PRODUCTION SAFE)
-# Python 3.13 | Streamlit | Regex NLP Core
-# ======================================================
-
 import streamlit as st
-import re
+import requests
 import pandas as pd
 import matplotlib.pyplot as plt
-from collections import Counter
-from wordcloud import WordCloud
-import textstat
+from PIL import Image
+import io
 
-# Optional NLTK (NO TOKENIZERS USED)
-import nltk
-from nltk.corpus import stopwords, wordnet
-from nltk.stem import PorterStemmer, WordNetLemmatizer
-from nltk import pos_tag
-
-# ======================================================
-# SAFE NLTK SETUP (NO punkt / no crashes)
-# ======================================================
-@st.cache_resource
-def setup_nltk():
-    for r in ["stopwords", "wordnet", "omw-1.4", "averaged_perceptron_tagger"]:
-        try:
-            nltk.data.find(f"corpora/{r}")
-        except LookupError:
-            nltk.download(r)
-
-setup_nltk()
-STOPWORDS = set(stopwords.words("english"))
-
-# ======================================================
-# 🔐 SAFE TOKENIZERS (REGEX-BASED)
-# ======================================================
-def safe_word_tokenize(text):
-    return re.findall(r"\b[a-zA-Z']+\b", text.lower())
-
-def safe_sent_tokenize(text):
-    return re.split(r'(?<=[.!?])\s+', text.strip())
-
-# ======================================================
-# STREAMLIT CONFIG
-# ======================================================
+# ================= CONFIG ================= #
 st.set_page_config(
     page_title="TextVortex",
     page_icon="🌪️",
     layout="wide"
 )
 
-st.title("🌪️ TextVortex — Future-Proof NLP Intelligence Engine")
+BACKEND_URL = "http://localhost:8000"
+
+st.title("🌪️ TextVortex — NLP Intelligence Engine (Backend Powered)")
 
 page = st.sidebar.radio(
     "Select Module",
@@ -67,13 +32,8 @@ page = st.sidebar.radio(
     ]
 )
 
-# ======================================================
-# INPUT (USED EVERYWHERE)
-# ======================================================
-text = st.text_area(
-    "✍️ Enter text (works for ALL modules):",
-    height=200
-)
+# ================= INPUT ================= #
+text = st.text_area("✍️ Enter text:", height=200)
 
 def validate():
     if not text.strip():
@@ -81,98 +41,96 @@ def validate():
         return False
     return True
 
-# ======================================================
-# HOME
-# ======================================================
+# ================= HOME ================= #
 if page == "🏠 Home":
     st.markdown("""
-    **TextVortex** is a next-generation NLP platform built with
-    **cloud safety, reproducibility, and research stability** in mind.
-
-    ✔ No tokenizer crashes  
-    ✔ Regex-driven NLP core  
-    ✔ Python 3.13 compatible  
-    ✔ Conference-ready design  
+    **TextVortex** is the NLP intelligence layer of ÆTHERIUM.
+    
+    All natural language processing operations are executed
+    through a centralized backend to ensure scalability,
+    reproducibility, and platform independence.
     """)
 
-# ======================================================
-# TOKENIZATION
-# ======================================================
+# ================= TOKENIZATION ================= #
 elif page == "🔠 Tokenization" and validate():
+    res = requests.post(
+        f"{BACKEND_URL}/text/tokenize",
+        json={"text": text}
+    ).json()
+
     st.subheader("Word Tokens")
-    st.write(safe_word_tokenize(text))
+    st.write(res["words"])
 
     st.subheader("Sentence Tokens")
-    st.write(safe_sent_tokenize(text))
+    st.write(res["sentences"])
 
-# ======================================================
-# STOPWORDS
-# ======================================================
+# ================= STOPWORDS ================= #
 elif page == "🛑 Stopwords Removal" and validate():
-    tokens = safe_word_tokenize(text)
-    st.write([t for t in tokens if t not in STOPWORDS])
+    res = requests.post(
+        f"{BACKEND_URL}/text/stopwords",
+        json={"text": text}
+    ).json()
+    st.write(res["tokens"])
 
-# ======================================================
-# STEMMING
-# ======================================================
+# ================= STEMMING ================= #
 elif page == "🌱 Stemming" and validate():
-    stemmer = PorterStemmer()
-    st.write([stemmer.stem(w) for w in safe_word_tokenize(text)])
+    res = requests.post(
+        f"{BACKEND_URL}/text/stemming",
+        json={"text": text}
+    ).json()
+    st.write(res["tokens"])
 
-# ======================================================
-# LEMMATIZATION
-# ======================================================
+# ================= LEMMATIZATION ================= #
 elif page == "🌿 Lemmatization" and validate():
-    lemmatizer = WordNetLemmatizer()
-    st.write([lemmatizer.lemmatize(w) for w in safe_word_tokenize(text)])
+    res = requests.post(
+        f"{BACKEND_URL}/text/lemmatization",
+        json={"text": text}
+    ).json()
+    st.write(res["tokens"])
 
-# ======================================================
-# N-GRAMS
-# ======================================================
+# ================= N-GRAMS ================= #
 elif page == "🔢 N-Grams" and validate():
     n = st.slider("Select N", 1, 4, 2)
-    tokens = safe_word_tokenize(text)
-    grams = zip(*[tokens[i:] for i in range(n)])
-    st.write([" ".join(g) for g in grams])
+    res = requests.post(
+        f"{BACKEND_URL}/text/ngrams",
+        json={"text": text, "n": n}
+    ).json()
+    st.write(res["ngrams"])
 
-# ======================================================
-# KEYWORDS
-# ======================================================
+# ================= KEYWORDS ================= #
 elif page == "🔑 Keyword Extraction" and validate():
-    tokens = [w for w in safe_word_tokenize(text) if w not in STOPWORDS]
-    freq = Counter(tokens)
-    st.dataframe(pd.DataFrame(freq.items(), columns=["Keyword", "Frequency"])
-                 .sort_values("Frequency", ascending=False))
+    res = requests.post(
+        f"{BACKEND_URL}/text/keywords",
+        json={"text": text}
+    ).json()
 
-# ======================================================
-# TEXT STATISTICS
-# ======================================================
+    df = pd.DataFrame(res["keywords"])
+    st.dataframe(df)
+
+# ================= TEXT STATISTICS ================= #
 elif page == "📊 Text Statistics" and validate():
-    st.write({
-        "Characters": len(text),
-        "Words": len(safe_word_tokenize(text)),
-        "Sentences": len(safe_sent_tokenize(text))
-    })
+    res = requests.post(
+        f"{BACKEND_URL}/text/statistics",
+        json={"text": text}
+    ).json()
+    st.json(res)
 
-# ======================================================
-# TEXT COMPLEXITY
-# ======================================================
+# ================= TEXT COMPLEXITY ================= #
 elif page == "📈 Text Complexity" and validate():
-    st.write({
-        "Flesch Reading Ease": textstat.flesch_reading_ease(text),
-        "Flesch-Kincaid Grade": textstat.flesch_kincaid_grade(text),
-        "Gunning Fog Index": textstat.gunning_fog(text)
-    })
+    res = requests.post(
+        f"{BACKEND_URL}/text/complexity",
+        json={"text": text}
+    ).json()
+    st.json(res)
 
-# ======================================================
-# WORD CLOUD
-# ======================================================
+# ================= WORD CLOUD ================= #
 elif page == "☁️ Word Cloud" and validate():
-    words = [w for w in safe_word_tokenize(text) if w not in STOPWORDS]
-    wc = WordCloud(width=800, height=400, background_color="white").generate(" ".join(words))
-    fig, ax = plt.subplots(figsize=(10, 5))
-    ax.imshow(wc, interpolation="bilinear")
-    ax.axis("off")
-    st.pyplot(fig)
+    res = requests.post(
+        f"{BACKEND_URL}/text/wordcloud",
+        json={"text": text}
+    )
+
+    img = Image.open(io.BytesIO(res.content))
+    st.image(img, caption="Word Cloud", use_column_width=True)
 
 
