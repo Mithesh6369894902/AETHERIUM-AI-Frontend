@@ -10,20 +10,47 @@ st.title("📷 VisionBlaze – Computer Vision Engine")
 BACKEND_URL = st.secrets["BACKEND_URL"]
 API_KEY = st.secrets["API_KEY"]
 
-# ---------------- IMAGE UPLOAD ---------------- #
+# ---------------- UI ---------------- #
 uploaded_file = st.file_uploader(
     "Upload an image",
     type=["png", "jpg", "jpeg"]
 )
 
+operation = st.selectbox(
+    "Select Vision Operation",
+    [
+        "Edge Detection",
+        "Contrast Enhancement",
+        "Saliency Mapping",
+        "Segmentation"
+    ]
+)
+
 if uploaded_file:
     st.image(uploaded_file, caption="Original Image", use_container_width=True)
 
-    t1 = st.slider("Lower Threshold", 0, 255, 80)
-    t2 = st.slider("Upper Threshold", 0, 255, 180)
+    params = {}
+    endpoint = ""
 
-    if st.button("Run Edge Detection"):
-        with st.spinner("Processing image with VisionBlaze..."):
+    # ---------------- OPERATION SETTINGS ---------------- #
+    if operation == "Edge Detection":
+        t1 = st.slider("Lower Threshold", 0, 255, 80)
+        t2 = st.slider("Upper Threshold", 0, 255, 180)
+        params = {"t1": t1, "t2": t2}
+        endpoint = "/vision/edges"
+
+    elif operation == "Contrast Enhancement":
+        endpoint = "/vision/contrast"
+
+    elif operation == "Saliency Mapping":
+        endpoint = "/vision/saliency"
+
+    elif operation == "Segmentation":
+        endpoint = "/vision/segment"
+
+    # ---------------- EXECUTION ---------------- #
+    if st.button("Run VisionBlaze"):
+        with st.spinner("Processing image..."):
             try:
                 files = {
                     "file": (
@@ -34,17 +61,17 @@ if uploaded_file:
                 }
 
                 response = requests.post(
-                    f"{BACKEND_URL}/vision/edges",
+                    f"{BACKEND_URL}{endpoint}",
                     files=files,
+                    data=params,
                     headers={"X-API-Key": API_KEY},
-                    timeout=60  # 🔥 CRITICAL
+                    timeout=60   # 🔥 REQUIRED
                 )
 
                 if response.status_code == 200:
                     img = Image.open(io.BytesIO(response.content))
-                    st.success("Edge detection successful")
-                    st.image(img, caption="Processed Image", use_container_width=True)
-
+                    st.success("Processing completed")
+                    st.image(img, caption="Processed Output", use_container_width=True)
                 else:
                     st.error(f"Backend error: {response.status_code}")
                     st.text(response.text)
