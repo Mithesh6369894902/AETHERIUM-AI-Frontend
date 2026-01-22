@@ -41,7 +41,8 @@ if uploaded_file:
                     st.success("Benchmark completed")
 
                     st.subheader("🏆 Best Model")
-                    st.write(result["best_model"])
+                    st.write(result.get("best_model", "N/A"))
+
 
                     st.subheader("📊 Benchmark Results")
                     st.table(pd.DataFrame(result["benchmark"]))
