@@ -1,6 +1,8 @@
 import streamlit as st
 import requests
 from datetime import date
+import pandas as pd
+import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="AlphaFlux", page_icon="📈", layout="wide")
 
@@ -36,17 +38,55 @@ if st.button("Run Forecast"):
                 f"{BACKEND_URL}/workflow/alphaflux/forecast",
                 json=payload,
                 headers={"X-API-Key": API_KEY},
-                timeout=60   # IMPORTANT for Render
+                timeout=60
             )
 
             if response.status_code == 200:
                 data = response.json()
                 st.success("Forecast generated successfully")
 
-                st.metric("Signal", data["signal"])
-                st.metric("Confidence", data["confidence"])
-                st.metric("Recent Avg Price", data["recent_avg"])
-                st.metric("Future Avg Price", data["future_avg"])
+                # ---------------- METRICS ---------------- #
+                colA, colB, colC, colD = st.columns(4)
+                colA.metric("Signal", data.get("signal", "N/A"))
+                colB.metric("Confidence", round(data.get("confidence", 0), 3))
+                colC.metric("Recent Avg Price", round(data.get("recent_avg", 0), 2))
+                colD.metric("Future Avg Price", round(data.get("future_avg", 0), 2))
+
+                # ---------------- GRAPH ---------------- #
+                historical = data.get("historical", [])
+                forecast = data.get("forecast", [])
+
+                if historical and forecast:
+                    hist_df = pd.DataFrame(historical)
+                    fore_df = pd.DataFrame(forecast)
+
+                    fig, ax = plt.subplots(figsize=(12, 5))
+
+                    ax.plot(
+                        hist_df["date"],
+                        hist_df["price"],
+                        label="Historical",
+                        color="blue"
+                    )
+
+                    ax.plot(
+                        fore_df["date"],
+                        fore_df["price"],
+                        linestyle="--",
+                        label="Forecast",
+                        color="orange"
+                    )
+
+                    ax.set_title(f"{symbol} Price Forecast")
+                    ax.set_xlabel("Date")
+                    ax.set_ylabel("Price")
+                    ax.legend()
+                    ax.grid(True)
+
+                    st.pyplot(fig)
+
+                else:
+                    st.warning("No graph data returned from backend")
 
             else:
                 st.error(f"Backend error: {response.status_code}")
