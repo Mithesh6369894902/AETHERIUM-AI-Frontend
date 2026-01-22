@@ -25,12 +25,13 @@ horizon = st.slider("Forecast Horizon (days)", 5, 60, 10)
 
 # ---------------- ACTION ---------------- #
 if st.button("Run Forecast"):
-    payload = {
-        "symbol": symbol,
-        "start_date": str(start_date),
-        "end_date": str(end_date),
-        "horizon": horizon
-    }
+  payload = {
+    "symbol": symbol,
+    "start_date": start_date.isoformat(),
+    "end_date": end_date.isoformat(),
+    "horizon": horizon
+}
+
 
     with st.spinner("Contacting AlphaFlux engine..."):
         try:
