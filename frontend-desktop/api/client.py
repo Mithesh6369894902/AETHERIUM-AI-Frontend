@@ -1,6 +1,6 @@
 import requests
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "https://aetherium-ai-backend.onrender.com"
 
 def post(endpoint, payload=None, files=None):
     url = f"{BASE_URL}{endpoint}"
