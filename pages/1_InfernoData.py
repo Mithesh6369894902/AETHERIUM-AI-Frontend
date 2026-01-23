@@ -100,7 +100,7 @@ elif mode == "Classification":
 # ---------------- REGRESSION ---------------- #
 elif mode == "Regression":
     file = st.file_uploader("Upload CSV", type=["csv"])
-    target = st.text_input("Target Column")
+    target = st.text_input(Target Column)
 
     if file and target and st.button("Run Regression"):
         try:
