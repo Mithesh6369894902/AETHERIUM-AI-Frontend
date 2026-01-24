@@ -18,7 +18,7 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("🧬 ModelCraft-X – AutoML Benchmarking Engine (Frontend Only)")
+st.title("🧬 ModelCraft-X – AutoML Benchmarking Engine")
 
 # ---------------- DATA UPLOAD ---------------- #
 uploaded_file = st.file_uploader("Upload CSV Dataset", type=["csv"])
