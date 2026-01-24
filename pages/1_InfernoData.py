@@ -76,55 +76,64 @@ elif mode == "Dataset Trimmer":
             st.text(str(e))
 
 # ---------------- CLASSIFICATION ---------------- #
+# ---------------- CLASSIFICATION ---------------- #
 elif mode == "Classification":
     file = st.file_uploader("Upload CSV", type=["csv"])
-    target = st.text_input("Target Column")
 
-    if file and target and st.button("Run Classification"):
-        try:
-            files = {
-                "file": (
-                    file.name,
-                    file.getvalue(),
-                    file.type
+    if file:
+        # Read CSV locally to extract columns
+        df_preview = pd.read_csv(file)
+        st.subheader("Dataset Preview")
+        st.dataframe(df_preview.head())
+
+        target = st.selectbox(
+            "Select Target Column",
+            options=df_preview.columns.tolist()
+        )
+
+        if st.button("Run Classification"):
+            try:
+                files = {
+                    "file": (
+                        file.name,
+                        file.getvalue(),
+                        file.type
+                    )
+                }
+
+                response = requests.post(
+                    f"{BACKEND_URL}/inferno/classify",
+                    files=files,
+                    data={"target": target},
+                    headers=headers,
+                    timeout=60
                 )
-            }
 
-            response = requests.post(
-                f"{BACKEND_URL}/inferno/classify",
-                files=files,
-                data={"target": target},
-                headers=headers,
-                timeout=60
-            )
+                if response.status_code == 200:
+                    result = response.json()
+                    st.success("Classification completed")
 
-            if response.status_code == 200:
-                result = response.json()
+                    if "accuracy" in result:
+                        st.metric("Accuracy", result["accuracy"])
 
-                st.success("Classification completed")
+                    if "report" in result:
+                        st.subheader("Classification Report")
+                        st.text(result["report"])
 
-                # ---- SAFE DISPLAY ----
-                if "accuracy" in result:
-                    st.metric("Accuracy", result["accuracy"])
+                    if "predictions" in result:
+                        st.subheader("Sample Predictions")
+                        st.write(result["predictions"][:10])
 
-                if "report" in result:
-                    st.subheader("Classification Report")
-                    st.text(result["report"])
-
-                if "predictions" in result:
-                    st.subheader("Sample Predictions")
-                    st.write(result["predictions"][:10])
+                    else:
+                        st.json(result)
 
                 else:
-                    st.json(result)
+                    st.error(f"Backend error: {response.status_code}")
+                    st.text(response.text)
 
-            else:
-                st.error(f"Backend error: {response.status_code}")
-                st.text(response.text)
-
-        except requests.exceptions.RequestException as e:
-            st.error("Could not connect to InfernoData backend")
-            st.text(str(e))
+            except requests.exceptions.RequestException as e:
+                st.error("Could not connect to InfernoData backend")
+                st.text(str(e))
 
 # ---------------- REGRESSION ---------------- #
 elif mode == "Regression":
