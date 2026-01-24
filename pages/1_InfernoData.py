@@ -76,20 +76,30 @@ elif mode == "Dataset Trimmer":
             st.text(str(e))
 
 # ---------------- CLASSIFICATION ---------------- #
-# ---------------- CLASSIFICATION ---------------- #
 elif mode == "Classification":
     file = st.file_uploader("Upload CSV", type=["csv"])
 
     if file:
-        # Read CSV locally to extract columns
-        df_preview = pd.read_csv(file)
+        df = pd.read_csv(file)
         st.subheader("Dataset Preview")
-        st.dataframe(df_preview.head())
+        st.dataframe(df.head())
+
+        # 🔥 VALID TARGET FILTER
+        valid_targets = [
+            col for col in df.columns
+            if df[col].nunique() <= 10
+        ]
+
+        if not valid_targets:
+            st.error("No valid classification target found (need categorical column)")
+            st.stop()
 
         target = st.selectbox(
-            "Select Target Column",
-            options=df_preview.columns.tolist()
+            "Select Target Column (Classification Labels)",
+            valid_targets
         )
+
+        st.info("Recommended target: Outcome")
 
         if st.button("Run Classification"):
             try:
@@ -124,15 +134,12 @@ elif mode == "Classification":
                         st.subheader("Sample Predictions")
                         st.write(result["predictions"][:10])
 
-                    else:
-                        st.json(result)
-
                 else:
                     st.error(f"Backend error: {response.status_code}")
-                    st.text(response.text)
+                    st.json(response.json())
 
-            except requests.exceptions.RequestException as e:
-                st.error("Could not connect to InfernoData backend")
+            except Exception as e:
+                st.error("Classification failed")
                 st.text(str(e))
 
 # ---------------- REGRESSION ---------------- #
