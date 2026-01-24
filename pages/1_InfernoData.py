@@ -82,7 +82,14 @@ elif mode == "Classification":
 
     if file and target and st.button("Run Classification"):
         try:
-            files = {"file": file}
+            files = {
+                "file": (
+                    file.name,
+                    file.getvalue(),
+                    file.type
+                )
+            }
+
             response = requests.post(
                 f"{BACKEND_URL}/inferno/classify",
                 files=files,
@@ -91,10 +98,32 @@ elif mode == "Classification":
                 timeout=60
             )
 
-            st.json(response.json())
+            if response.status_code == 200:
+                result = response.json()
+
+                st.success("Classification completed")
+
+                # ---- SAFE DISPLAY ----
+                if "accuracy" in result:
+                    st.metric("Accuracy", result["accuracy"])
+
+                if "report" in result:
+                    st.subheader("Classification Report")
+                    st.text(result["report"])
+
+                if "predictions" in result:
+                    st.subheader("Sample Predictions")
+                    st.write(result["predictions"][:10])
+
+                else:
+                    st.json(result)
+
+            else:
+                st.error(f"Backend error: {response.status_code}")
+                st.text(response.text)
 
         except requests.exceptions.RequestException as e:
-            st.error("Connection failed")
+            st.error("Could not connect to InfernoData backend")
             st.text(str(e))
 
 # ---------------- REGRESSION ---------------- #
