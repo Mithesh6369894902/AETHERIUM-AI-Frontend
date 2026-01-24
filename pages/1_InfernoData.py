@@ -143,26 +143,83 @@ elif mode == "Classification":
                 st.text(str(e))
 
 # ---------------- REGRESSION ---------------- #
+# ---------------- REGRESSION ---------------- #
 elif mode == "Regression":
     file = st.file_uploader("Upload CSV", type=["csv"])
-    target = st.text_input("Target Column")
 
-    if file and target and st.button("Run Regression"):
-        try:
-            files = {"file": file}
-            response = requests.post(
-                f"{BACKEND_URL}/inferno/regress",
-                files=files,
-                data={"target": target},
-                headers=headers,
-                timeout=60
-            )
+    if file:
+        # Load dataset locally for column inspection
+        df = pd.read_csv(file)
 
-            st.json(response.json())
+        st.subheader("Dataset Preview")
+        st.dataframe(df.head(), use_container_width=True)
 
-        except requests.exceptions.RequestException as e:
-            st.error("Connection failed")
-            st.text(str(e))
+        # Filter numeric columns ONLY (regression-safe)
+        numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
+
+        if len(numeric_cols) < 2:
+            st.error("Dataset must contain at least 2 numeric columns for regression")
+            st.stop()
+
+        target = st.selectbox(
+            "Select Target Column (Regression Output)",
+            numeric_cols
+        )
+
+        st.info(f"Selected target: {target}")
+
+        if st.button("Run Regression"):
+            try:
+                files = {
+                    "file": (
+                        file.name,
+                        file.getvalue(),
+                        file.type
+                    )
+                }
+
+                response = requests.post(
+                    f"{BACKEND_URL}/inferno/regress",
+                    files=files,
+                    data={"target": target},
+                    headers=headers,
+                    timeout=60
+                )
+
+                if response.status_code == 200:
+                    result = response.json()
+                    st.success("Regression completed")
+
+                    # ---- ALWAYS SHOW RAW RESULT ----
+                    st.subheader("📦 Backend Output")
+                    st.json(result)
+
+                    # ---- SMART METRICS ----
+                    if "r2" in result:
+                        st.metric("R² Score", result["r2"])
+
+                    if "rmse" in result:
+                        st.metric("RMSE", result["rmse"])
+
+                    if "mae" in result:
+                        st.metric("MAE", result["mae"])
+
+                    if "predictions" in result:
+                        st.subheader("Sample Predictions")
+                        st.write(result["predictions"][:10])
+
+                    if "y_pred" in result:
+                        st.subheader("Sample Predictions")
+                        st.write(result["y_pred"][:10])
+
+                else:
+                    st.error(f"Backend error: {response.status_code}")
+                    st.text(response.text)
+
+            except requests.exceptions.RequestException as e:
+                st.error("Could not connect to InfernoData backend")
+                st.text(str(e))
+
 
 # ---------------- CLUSTERING ---------------- #
 elif mode == "Clustering":
